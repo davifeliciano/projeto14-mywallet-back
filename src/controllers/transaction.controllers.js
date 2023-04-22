@@ -45,7 +45,7 @@ export async function getTotal(req, res) {
   const user = res.locals.user;
 
   try {
-    const [{ total }] = await db
+    const result = await db
       .collection("transactions")
       .aggregate([
         { $match: { author: new ObjectId(user) } },
@@ -53,7 +53,12 @@ export async function getTotal(req, res) {
       ])
       .toArray();
 
-    res.send({ total: total.toString() });
+    if (result.length === 0) {
+      return res.send({ total: "00.00" });
+    }
+
+    const total = result.at(0).total;
+    return res.send({ total: total.toString() });
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
