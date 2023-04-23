@@ -24,12 +24,13 @@ export async function getTransactions(req, res) {
 
 export async function setTransaction(req, res) {
   const user = res.locals.user;
-  const { description, amount } = res.locals.body;
+  const { description, amount, type } = res.locals.body;
 
   try {
     await db.collection("transactions").insertOne({
       description: stripHtml(description).result,
       amount: new Decimal128(amount.toString()),
+      type,
       author: new ObjectId(user),
       createdAt: Date.now(),
     });
@@ -45,20 +46,52 @@ export async function getTotal(req, res) {
   const user = res.locals.user;
 
   try {
-    const result = await db
+    const resultArray = await db
       .collection("transactions")
       .aggregate([
         { $match: { author: new ObjectId(user) } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
+        {
+          $group: {
+            _id: null,
+            credit: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "credit"] }, "$amount", 0],
+              },
+            },
+            debit: {
+              $sum: {
+                $cond: [{ $eq: ["$type", "debit"] }, "$amount", 0],
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            _id: null,
+            total: {
+              $subtract: ["$credit", "$debit"],
+            },
+          },
+        },
       ])
       .toArray();
 
-    if (result.length === 0) {
-      return res.send({ total: "00.00" });
+    if (resultArray.length === 0) {
+      return res.send({
+        credit: "0",
+        debit: "0",
+        total: "0",
+      });
     }
 
-    const total = result.at(0).total;
-    return res.send({ total: total.toString() });
+    const [result] = resultArray;
+    delete result._id;
+
+    const stringfiedResult = Object.fromEntries(
+      Object.entries(result).map(([key, value]) => [key, value.toString()])
+    );
+
+    return res.send(stringfiedResult);
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
