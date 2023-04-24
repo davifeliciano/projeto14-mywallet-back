@@ -87,6 +87,5 @@ export async function getTotal(userId) {
     Object.entries(result).map(([key, value]) => [key, value.toString()])
   );
 
-  console.log(stringfiedResult);
   return stringfiedResult;
 }
