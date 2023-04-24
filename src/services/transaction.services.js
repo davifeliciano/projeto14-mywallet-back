@@ -73,11 +73,11 @@ export async function getTotal(userId) {
     .toArray();
 
   if (resultArray.length === 0) {
-    return res.send({
+    return {
       credit: "0",
       debit: "0",
       total: "0",
-    });
+    };
   }
 
   const [result] = resultArray;
