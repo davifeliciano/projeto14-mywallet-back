@@ -1,18 +1,33 @@
 import { Router } from "express";
 import validateToken from "../middlewares/validateToken.js";
 import validateSchema from "../middlewares/validateSchema.js";
-import transactionSchema from "../schemas/transaction.schemas.js";
+import { postSchema, patchSchema } from "../schemas/transaction.schemas.js";
 import {
-  getTransactions,
-  setTransaction,
-  getTotal,
+  getTransactionsController,
+  postTransactionController,
+  patchTransactionController,
+  deleteTransactionController,
+  getTotalController,
 } from "../controllers/transaction.controllers.js";
 
 const router = Router();
 
 router.use(validateToken);
-router.get("/transactions", getTransactions);
-router.post("/transactions", validateSchema(transactionSchema), setTransaction);
-router.get("/transactions/total", getTotal);
+router.get("/transactions", getTransactionsController);
+
+router.post(
+  "/transactions",
+  validateSchema(postSchema),
+  postTransactionController
+);
+
+router.patch(
+  "/transactions/:id",
+  validateSchema(patchSchema),
+  patchTransactionController
+);
+
+router.delete("/transactions/:id", deleteTransactionController);
+router.get("/transactions/total", getTotalController);
 
 export default router;

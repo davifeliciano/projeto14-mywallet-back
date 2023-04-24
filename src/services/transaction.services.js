@@ -2,7 +2,7 @@ import { ObjectId, Decimal128 } from "mongodb";
 import { stripHtml } from "string-strip-html";
 import db from "../database/database.js";
 
-export function getTransactionsFromUser(userId) {
+export function getTransactions(userId) {
   return db
     .collection("transactions")
     .find({ author: new ObjectId(userId) })
@@ -19,7 +19,29 @@ export function createTransaction(userId, description, amount, type) {
   });
 }
 
-export async function getTotalFromUser(userId) {
+export function patchTransaction(userId, transactionId, description, amount) {
+  return db.collection("transactions").updateOne(
+    {
+      _id: new ObjectId(transactionId),
+      author: new ObjectId(userId),
+    },
+    {
+      $set: {
+        description: stripHtml(description).result,
+        amount: new Decimal128(amount.toString()),
+      },
+    }
+  );
+}
+
+export function deleteTransaction(userId, transactionId) {
+  return db.collection("transactions").deleteOne({
+    _id: new ObjectId(transactionId),
+    author: new ObjectId(userId),
+  });
+}
+
+export async function getTotal(userId) {
   const resultArray = await db
     .collection("transactions")
     .aggregate([

@@ -1,12 +1,12 @@
 import { compareSync } from "bcrypt";
 import jwt from "jsonwebtoken";
-import { createUser, getUserByEmail } from "../services/user.services.js";
+import { createUser, getUser } from "../services/user.services.js";
 
-export async function signUp(req, res) {
+export async function signUpController(req, res) {
   const { name, email, password } = res.locals.body;
 
   try {
-    const user = await getUserByEmail(email);
+    const user = await getUser(email);
 
     if (user) {
       return res.sendStatus(409);
@@ -21,11 +21,11 @@ export async function signUp(req, res) {
   return res.sendStatus(201);
 }
 
-export async function signIn(req, res) {
+export async function signInController(req, res) {
   const { email, password } = res.locals.body;
 
   try {
-    const user = await getUserByEmail(email);
+    const user = await getUser(email);
 
     if (!user) {
       return res.sendStatus(404);

@@ -2,7 +2,7 @@ import { hashSync } from "bcrypt";
 import { stripHtml } from "string-strip-html";
 import db from "../database/database.js";
 
-export function getUserByEmail(email) {
+export function getUser(email) {
   return db.collection("users").findOne({ email });
 }
 
