@@ -1,24 +1,18 @@
-import { compareSync, hashSync } from "bcrypt";
-import { stripHtml } from "string-strip-html";
+import { compareSync } from "bcrypt";
 import jwt from "jsonwebtoken";
-import db from "../database/database.js";
+import { createUser, getUserByEmail } from "../services/user.services.js";
 
 export async function signUp(req, res) {
   const { name, email, password } = res.locals.body;
 
   try {
-    const user = await db.collection("users").findOne({ email });
+    const user = await getUserByEmail(email);
 
     if (user) {
       return res.sendStatus(409);
     }
 
-    const saltRounds = 10;
-    const hash = hashSync(password, saltRounds);
-    const sanitizedName = stripHtml(name).result;
-    await db
-      .collection("users")
-      .insertOne({ name: sanitizedName, email, password: hash });
+    await createUser(name, email, password);
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
@@ -31,7 +25,7 @@ export async function signIn(req, res) {
   const { email, password } = res.locals.body;
 
   try {
-    const user = await db.collection("users").findOne({ email });
+    const user = await getUserByEmail(email);
 
     if (!user) {
       return res.sendStatus(404);

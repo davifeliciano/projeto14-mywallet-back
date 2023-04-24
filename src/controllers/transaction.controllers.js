@@ -1,15 +1,14 @@
-import { Decimal128, ObjectId } from "mongodb";
-import db from "../database/database.js";
-import { stripHtml } from "string-strip-html";
+import {
+  createTransaction,
+  getTotalFromUser,
+  getTransactionsFromUser,
+} from "../services/transaction.services.js";
 
 export async function getTransactions(req, res) {
   const user = res.locals.user;
 
   try {
-    const transactions = await db
-      .collection("transactions")
-      .find({ author: new ObjectId(user) })
-      .toArray();
+    const transactions = await getTransactionsFromUser(user);
 
     return res.send(
       transactions.map((transaction) => {
@@ -27,14 +26,7 @@ export async function setTransaction(req, res) {
   const { description, amount, type } = res.locals.body;
 
   try {
-    await db.collection("transactions").insertOne({
-      description: stripHtml(description).result,
-      amount: new Decimal128(amount.toString()),
-      type,
-      author: new ObjectId(user),
-      createdAt: Date.now(),
-    });
-
+    await createTransaction(user, description, amount, type);
     return res.sendStatus(201);
   } catch (err) {
     console.error(err);
@@ -46,52 +38,8 @@ export async function getTotal(req, res) {
   const user = res.locals.user;
 
   try {
-    const resultArray = await db
-      .collection("transactions")
-      .aggregate([
-        { $match: { author: new ObjectId(user) } },
-        {
-          $group: {
-            _id: null,
-            credit: {
-              $sum: {
-                $cond: [{ $eq: ["$type", "credit"] }, "$amount", 0],
-              },
-            },
-            debit: {
-              $sum: {
-                $cond: [{ $eq: ["$type", "debit"] }, "$amount", 0],
-              },
-            },
-          },
-        },
-        {
-          $addFields: {
-            _id: null,
-            total: {
-              $subtract: ["$credit", "$debit"],
-            },
-          },
-        },
-      ])
-      .toArray();
-
-    if (resultArray.length === 0) {
-      return res.send({
-        credit: "0",
-        debit: "0",
-        total: "0",
-      });
-    }
-
-    const [result] = resultArray;
-    delete result._id;
-
-    const stringfiedResult = Object.fromEntries(
-      Object.entries(result).map(([key, value]) => [key, value.toString()])
-    );
-
-    return res.send(stringfiedResult);
+    const total = await getTotalFromUser(user);
+    return res.send(total);
   } catch (err) {
     console.error(err);
     return res.status(500).send(err);
